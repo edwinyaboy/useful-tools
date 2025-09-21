@@ -33,5 +33,10 @@
     <td><a href="https://edwinyaboy.github.io/hash-identifier/">Hash Identifier</a></td>
     <td>Identify many different hash types.</td>
   </tr>
+  <tr>
+    <td align="center">📑</td>
+    <td><a href="https://edwinyaboy.github.io/clipboard-manager/">Clipboard Manager</a></td>
+    <td>Safely save, manage, and quickly access copied text.</td>
+  </tr>
 </table>
 
