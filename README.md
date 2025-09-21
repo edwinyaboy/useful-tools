@@ -28,5 +28,10 @@
     <td><a href="https://edwinyaboy.github.io/crypto-qr-code-generator/">QR Code Generator</a></td>
     <td>Generate QR codes with different styles and download them.</td>
   </tr>
+  <tr>
+    <td align="center">🔐</td>
+    <td><a href="https://edwinyaboy.github.io/hash-identifier/">Hash Identifier</a></td>
+    <td>Identify many different hash types.</td>
+  </tr>
 </table>
 
