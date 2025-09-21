@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Clipboard Manager</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+  <style>
+    :root {
+      --primary: #4caf50;
+      --primary-hover: #32cd32;
+      --card-bg: rgba(30, 30, 30, 0.95);
+      --text-color: #f0f0f0;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, sans-serif;
+      background: #000;
+      color: var(--text-color);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 40px 20px;
+    }
+
+    .container {
+      background: var(--card-bg);
+      backdrop-filter: blur(8px);
+      padding: 25px;
+      border-radius: 16px;
+      max-width: 650px;
+      width: 100%;
+      box-shadow: 0 10px 30px rgba(0, 255, 0, 0.1);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      position: relative;
+    }
+
+    h1 {
+      text-align: center;
+      margin: 0 0 10px 0;
+      font-size: 24px;
+    }
+
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .input-group label {
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+
+    input, button {
+      width: 100%;
+      padding: 10px;
+      border-radius: 8px;
+      border: none;
+      background: #2a2a2a;
+      color: var(--text-color);
+      font-size: 1rem;
+    }
+
+    input {
+      background: #2a2a2a;
+    }
+
+    input[type="password"] {
+      -webkit-text-security: disc;
+    }
+
+    button {
+      background: linear-gradient(90deg, var(--primary), var(--primary-hover));
+      color: #fff;
+      cursor: pointer;
+      transition: background 0.3s, box-shadow 0.3s;
+      font-weight: bold;
+    }
+
+    button:hover {
+      background: linear-gradient(90deg, var(--primary-hover), var(--primary));
+      box-shadow: 0 0 10px var(--primary-hover);
+    }
+
+    button:focus {
+      outline: 2px solid #fff;
+      outline-offset: 2px;
+    }
+
+    .btn-outline-primary {
+      background: none;
+      border: 2px solid var(--primary);
+      color: var(--primary);
+    }
+
+    .btn-outline-primary:hover {
+      background: linear-gradient(90deg, var(--primary), var(--primary-hover));
+      color: var(--text-color);
+      box-shadow: 0 0 10px var(--primary-hover);
+    }
+
+    .btn-danger {
+      background: linear-gradient(90deg, #f44336, #d32f2f);
+    }
+
+    .btn-danger:hover {
+      background: linear-gradient(90deg, #d32f2f, #f44336);
+      box-shadow: 0 0 10px #f44336;
+    }
+
+    .clips-list {
+      background: #2a2a2a;
+      padding: 16px;
+      border-radius: 8px;
+      margin-top: 16px;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .clip-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px;
+      border-bottom: 1px solid #404040;
+      gap: 10px;
+    }
+
+    .clip-item:last-child {
+      border-bottom: none;
+    }
+
+    .clip-preview {
+      flex: 1;
+      font-size: 0.9rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      cursor: pointer;
+    }
+
+    .clip-timestamp {
+      font-size: 0.8rem;
+      color: #888;
+      white-space: nowrap;
+    }
+
+    .clip-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .clip-actions button {
+      width: auto;
+      padding: 6px 10px;
+      font-size: 0.85rem;
+    }
+
+    .locked {
+      text-align: center;
+      padding: 30px;
+    }
+
+    .hint-text {
+      font-size: 0.8rem;
+      color: #888;
+      font-style: italic;
+      margin-top: 8px;
+    }
+
+    .error-text {
+      color: #f44336;
+      font-size: 0.85rem;
+      margin-top: 4px;
+      display: none;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--primary);
+      color: #000;
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-weight: bold;
+      opacity: 0;
+      transition: opacity 0.3s;
+      z-index: 10;
+    }
+
+    .toast.show {
+      opacity: 1;
+    }
+
+    .flex-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .unlockedView {
+      display: flex;
+      flex-direction: column;
+      gap: 32px;
+    }
+
+    @media (max-width: 500px) {
+      .container {
+        padding: 16px;
+      }
+
+      h1 {
+        font-size: 20px;
+      }
+
+      .clip-actions {
+        flex-direction: column;
+      }
+
+      .locked {
+        padding: 20px;
+      }
+
+      .flex-row {
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Clipboard Manager</h1>
+
+    <div id="lockedView" class="locked">
+      <div class="input-group">
+        <label for="passwordInput">Enter Password to Unlock</label>
+        <input type="password" id="passwordInput" placeholder="Password" aria-label="Enter password">
+        <small class="error-text" id="passwordError">Invalid password</small>
+        <small id="hintText" class="hint-text" style="display: none;"></small>
+      </div>
+      <button id="unlockBtn" style="margin-top: 16px;">Unlock</button>
+      <p style="font-size: 0.8rem; color: #888; margin-top: 16px;">
+        No password set? Use any password to start, and set a hint in the next section.
+      </p>
+    </div>
+
+    <div id="unlockedView" class="unlockedView" style="display: none;">
+      <div class="input-group">
+        <label for="hintInput">Password Hint (optional)</label>
+        <input type="text" id="hintInput" placeholder="Enter a hint for your password" aria-label="Password hint">
+      </div>
+	  </br>
+      <div class="flex-row">
+        <button id="captureBtn">Capture Current Clipboard</button>
+        <button id="clearAllBtn" class="btn-danger">Clear All</button>
+      </div>
+
+      <div id="clipsList" class="clips-list">
+        <p>No clips saved yet.</p>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script>
+    const elements = {
+      lockedView: document.getElementById('lockedView'),
+      unlockedView: document.getElementById('unlockedView'),
+      passwordInput: document.getElementById('passwordInput'),
+      unlockBtn: document.getElementById('unlockBtn'),
+      passwordError: document.getElementById('passwordError'),
+      hintInput: document.getElementById('hintInput'),
+      hintText: document.getElementById('hintText'),
+      captureBtn: document.getElementById('captureBtn'),
+      clearAllBtn: document.getElementById('clearAllBtn'),
+      clipsList: document.getElementById('clipsList'),
+      toast: document.getElementById('toast')
+    };
+
+    let password = '';
+    let clips = [];
+    const STORAGE_KEY = 'encryptedClips';
+    const HINT_KEY = 'passwordHint';
+
+    function showToast(message) {
+      elements.toast.textContent = message;
+      elements.toast.classList.add('show');
+      setTimeout(() => elements.toast.classList.remove('show'), 3000);
+    }
+
+    function saveClips() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(clips));
+    }
+
+    function loadClips() {
+      try {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored) {
+          clips = JSON.parse(stored);
+        } else {
+          clips = [];
+        }
+      } catch (e) {
+        clips = [];
+        showToast('Error loading clips: ' + e.message);
+      }
+    }
+
+    function saveHint() {
+      const hint = elements.hintInput.value.trim();
+      localStorage.setItem(HINT_KEY, hint);
+      showToast('Password hint saved');
+    }
+
+    function loadHint() {
+      const hint = localStorage.getItem(HINT_KEY);
+      if (hint) {
+        elements.hintText.textContent = `Hint: ${hint}`;
+        elements.hintText.style.display = 'block';
+      } else {
+        elements.hintText.style.display = 'none';
+      }
+    }
+
+    function sanitizeText(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&apos;');
+    }
+
+    function encryptText(text, pass) {
+      const sanitized = sanitizeText(text);
+      return CryptoJS.AES.encrypt(sanitized, pass).toString();
+    }
+
+    function decryptText(encrypted, pass) {
+      try {
+        const bytes = CryptoJS.AES.decrypt(encrypted, pass);
+        return bytes.toString(CryptoJS.enc.Utf8);
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function displayClips() {
+      elements.clipsList.innerHTML = clips.length === 0 ? '<p>No clips saved yet.</p>' : '';
+
+      clips.forEach((clip, index) => {
+        const decrypted = decryptText(clip.encrypted, password);
+        if (!decrypted) {
+          showToast('Failed to decrypt a clip. Wrong password?');
+          return;
+        }
+
+        const item = document.createElement('div');
+        item.className = 'clip-item';
+        const preview = document.createElement('div');
+        preview.className = 'clip-preview';
+        preview.textContent = decrypted.length > 100 ? decrypted.substring(0, 100) + '...' : decrypted;
+        preview.title = decrypted;
+        preview.onclick = () => copyToClipboard(index);
+        item.appendChild(preview);
+
+        const timestamp = document.createElement('div');
+        timestamp.className = 'clip-timestamp';
+        timestamp.textContent = clip.timestamp;
+        item.appendChild(timestamp);
+
+        const actions = document.createElement('div');
+        actions.className = 'clip-actions';
+        actions.innerHTML = `
+          <button onclick="copyToClipboard('${index}')">Copy</button>
+          <button class="btn-outline-primary" onclick="deleteClip('${index}')">Delete</button>
+        `;
+        item.appendChild(actions);
+
+        elements.clipsList.appendChild(item);
+      });
+    }
+
+    async function captureClipboard() {
+      try {
+        const text = await navigator.clipboard.readText();
+        if (!text.trim()) {
+          showToast('Clipboard is empty');
+          return;
+        }
+        const encrypted = encryptText(text, password);
+        const newClip = {
+          id: Date.now(),
+          timestamp: new Date().toLocaleString(),
+          encrypted: encrypted
+        };
+        clips.unshift(newClip);
+        saveClips();
+        displayClips();
+        showToast('Clipboard captured and encrypted');
+      } catch (e) {
+        showToast('Failed to read clipboard: ' + e.message + '. Ensure permissions granted.');
+      }
+    }
+
+    window.copyToClipboard = async function(index) {
+      const decrypted = decryptText(clips[index].encrypted, password);
+      if (!decrypted) {
+        showToast('Failed to decrypt clip');
+        return;
+      }
+      await navigator.clipboard.writeText(decrypted);
+      showToast('Copied to clipboard');
+    };
+
+    window.deleteClip = function(index) {
+      clips.splice(index, 1);
+      saveClips();
+      displayClips();
+      showToast('Clip deleted');
+    };
+
+    function clearAllClips() {
+      if (confirm('Delete all clips?')) {
+        clips = [];
+        saveClips();
+        displayClips();
+        showToast('All clips cleared');
+      }
+    }
+
+    function unlock() {
+      password = elements.passwordInput.value;
+      if (!password) {
+        elements.passwordError.style.display = 'block';
+        return;
+      }
+
+      // Test decryption with first clip if exists
+      loadClips();
+      if (clips.length > 0) {
+        const testDecrypt = decryptText(clips[0].encrypted, password);
+        if (!testDecrypt) {
+          elements.passwordError.textContent = 'Wrong password';
+          elements.passwordError.style.display = 'block';
+          return;
+        }
+      }
+
+      elements.passwordError.style.display = 'none';
+      elements.lockedView.style.display = 'none';
+      elements.unlockedView.style.display = 'block';
+      displayClips();
+    }
+
+    // Event listeners
+    elements.unlockBtn.addEventListener('click', unlock);
+    elements.passwordInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') unlock();
+    });
+    elements.captureBtn.addEventListener('click', captureClipboard);
+    elements.clearAllBtn.addEventListener('click', clearAllClips);
+    elements.hintInput.addEventListener('input', saveHint);
+
+    // Initial load
+    loadClips();
+    loadHint();
+    if (clips.length === 0) {
+      elements.lockedView.querySelector('p').textContent = 'Set a password and optional hint to start encrypting clips.';
+    }
+  </script>
+</body>
+</html>
