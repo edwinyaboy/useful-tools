@@ -8,6 +8,8 @@
 
 ---
 
+<h2><a href="https://edwinyaboy.github.io/useful-tools/">🌐 My Free Tool Directory</a></h2>
+
 <h2>🚀 Available Tools</h2>
 
 <table>
