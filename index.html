@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Tools</title>
+<style>
+  body {
+    margin: 0;
+    font-family: 'Segoe UI', Tahoma, sans-serif;
+    background: #111;
+    color: #f0f0f0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 20px;
+  }
+
+  h1 {
+    font-size: 2.5rem;
+    margin-bottom: 30px;
+    text-align: center;
+  }
+
+  .tools-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 20px;
+    width: 100%;
+    max-width: 1000px;
+  }
+
+  .tool-card {
+    background: #1a1a1a;
+    padding: 20px;
+    border-radius: 15px;
+    text-align: center;
+    transition: 0.3s;
+    text-decoration: none;
+    color: #f0f0f0;
+  }
+
+  .tool-card:hover {
+    background: #2a2a2a;
+    transform: translateY(-5px);
+  }
+
+  .tool-icon {
+    width: 60px;
+    height: 60px;
+    margin-bottom: 15px;
+    fill: #1e90ff;
+    transition: 0.3s;
+  }
+
+  .tool-card:hover .tool-icon {
+    fill: #3aa0ff;
+  }
+
+  .tool-title {
+    font-size: 1.2rem;
+    margin-bottom: 10px;
+  }
+
+  .tool-description {
+    font-size: 0.9rem;
+    color: #ccc;
+  }
+
+  @media (max-width: 500px){
+    .tool-card {
+      padding: 15px;
+    }
+
+    .tool-title {
+      font-size: 1rem;
+    }
+
+    .tool-description {
+      font-size: 0.8rem;
+    }
+
+    .tool-icon {
+      width: 50px;
+      height: 50px;
+    }
+  }
+</style>
+</head>
+<body>
+
+<h1>My Tools</h1>
+
+<div class="tools-container">
+  <a href="https://edwinyaboy.github.io/free-password-generator/" class="tool-card">
+    <svg class="tool-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+      <path d="M12 1C8.13 1 5 4.13 5 8v4H3v10h18V12h-2V8c0-3.87-3.13-7-7-7zM7 8c0-2.76 2.24-5 5-5s5 2.24 5 5v4H7V8zm2 12v-4h6v4H9z"/>
+    </svg>
+    <div class="tool-title">Password Generator</div>
+    <div class="tool-description">Generate secure passwords instantly.</div>
+  </a>
+
+  <a href="https://edwinyaboy.github.io/crypto-qr-code-generator/" class="tool-card">
+    <svg class="tool-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+      <path d="M3 3h8v8H3V3zm10 0h8v8h-8V3zM3 13h8v8H3v-8zm10 0h2v2h-2v-2zm4 4h2v2h-2v-2z"/>
+    </svg>
+    <div class="tool-title">QR Code Generator</div>
+    <div class="tool-description">Create QR codes for cryptocurrency wallets.</div>
+  </a>
+  <!-- Add more tools here -->
+</div>
+
+</body>
+</html>
