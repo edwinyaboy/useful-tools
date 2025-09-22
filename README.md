@@ -39,7 +39,7 @@
     <td>Safely save, manage, and quickly access copied text.</td>
   </tr>
   <tr>
-    <td align="center">📑</td>
+    <td align="center">🛡️</td>
     <td><a href="https://edwinyaboy.github.io/password-checker/">Password Checker</a></td>
     <td>Check if your password has been leaked through HIBP.</td>
   </tr>
