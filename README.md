@@ -43,5 +43,10 @@
     <td><a href="https://edwinyaboy.github.io/password-checker/">Password Checker</a></td>
     <td>Check if your password has been leaked through HIBP.</td>
   </tr>
+  <tr>
+    <td align="center">📐</td>
+    <td><a href="https://edwinyaboy.github.io/unit-converter/">Unit Converter</a></td>
+    <td>Quickly and easily convert different types of units!</td>
+  </tr>
 </table>
 
