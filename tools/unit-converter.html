@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Unit Converter</title>
+  <style>
+    :root{
+      --primary: #4caf50;
+      --primary-hover:#32cd32;
+      --card-bg: rgba(30,30,30,0.95);
+      --text-color: #f0f0f0;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{
+      font-family: 'Segoe UI', Tahoma, sans-serif;
+      background:#000;color:var(--text-color);
+      min-height:100vh;display:flex;justify-content:center;
+      align-items:flex-start;padding:40px 20px;
+    }
+    .container{
+      background:var(--card-bg);backdrop-filter:blur(8px);
+      padding:25px;border-radius:16px;max-width:720px;width:100%;
+      box-shadow:0 10px 30px rgba(0,255,0,0.08);
+      display:flex;flex-direction:column;gap:14px;position:relative;
+    }
+    h1{font-size:24px;text-align:center;margin-bottom:4px}
+    .row{display:flex;gap:12px;align-items:center}
+    .col{display:flex;flex-direction:column;gap:6px;flex:1}
+    label{font-size:.9rem;font-weight:600}
+    input[type="number"], input[type="text"], select {
+      padding:10px;border-radius:8px;border:none;background:#2a2a2a;color:var(--text-color);
+      font-size:1rem;
+    }
+    input[type="number"]{ -moz-appearance:textfield; }
+    button {
+      padding:12px;border-radius:8px;border:none;cursor:pointer;
+      background:linear-gradient(90deg,var(--primary),var(--primary-hover));
+      color:#fff;font-weight:700;font-size:1rem;
+    }
+    button:hover{ box-shadow:0 0 10px var(--primary-hover) }
+    button.secondary{ background:none;border:2px solid var(--primary);color:var(--primary) }
+    button.swap{ background:#1e90ff }
+    .result{ background:#2a2a2a;padding:14px;border-radius:8px;margin-top:8px;font-size:1rem }
+    .small{font-size:.85rem;color:#bbb}
+    .error-text{ color:#f44336;font-size:.85rem;display:none }
+    datalist option{ color:#000 }
+    .controls{ display:flex; gap:8px; align-items:center; flex-wrap:wrap }
+    @media (max-width:560px){
+      .row{flex-direction:column}
+      .controls{flex-direction:column}
+    }
+  </style>
+</head>
+<body>
+  <div class="container" role="main" aria-label="Unit Converter">
+    <h1>Unit Converter</h1>
+
+    <div class="col">
+      <label for="category">Category</label>
+      <select id="category" aria-label="Category">
+        <option value="length">Length</option>
+        <option value="weight">Weight</option>
+        <option value="temperature">Temperature</option>
+        <option value="speed">Speed</option>
+        <option value="liquid">Liquids</option>
+        <option value="time">Time</option>
+        <option value="storage">Data Storage</option>
+      </select>
+    </div>
+
+    <div class="row">
+      <div class="col" style="flex:0.9">
+        <label for="fromValue">Value</label>
+        <input id="fromValue" type="number" step="any" inputmode="decimal" placeholder="Enter value" aria-label="Value">
+      </div>
+	  
+      <div class="col" style="flex:1">
+        <label for="historySelect">History (pick to re-run)</label>
+        <input id="historySelect" list="historyList" type="text" placeholder="Or choose recent conversion" aria-label="History">
+        <datalist id="historyList"></datalist>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col">
+        <label for="fromUnit">From</label>
+        <select id="fromUnit" aria-label="From unit"></select>
+      </div>
+
+      <div class="col">
+        <label for="toUnit">To</label>
+        <select id="toUnit" aria-label="To unit"></select>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button id="swapBtn" class="swap" aria-label="Swap units">⇅ Swap Units</button>
+      <button id="convertBtn" aria-label="Convert">Convert</button>
+      <button id="clearHistoryBtn" class="secondary" aria-label="Clear history">Clear History</button>
+    </div>
+
+    <div id="result" class="result" aria-live="polite">
+      <p>Converted value will appear here.</p>
+    </div>
+
+    <small class="error-text" id="errorText">Invalid input.</small>
+  </div>
+
+  <script>
+    // Unit lists (capitalized, ordered)
+    const unitLists = {
+      length: ["Millimeters","Centimeters","Meters","Kilometers","Feet","Yards","Miles"],
+      weight: ["Milligrams","Grams","Kilograms","Ounces","Pounds"],
+      temperature: ["Celsius","Fahrenheit","Kelvin"],
+      speed: ["Meters/Second","Kilometers/Hour","Miles/Hour"],
+      liquid: ["Milliliters","Liters","Cups","Gallons"],
+      time: ["Seconds","Minutes","Hours","Days","Weeks","Months","Years"],
+      storage: ["Bits","Bytes","Kilobytes","Megabytes","Gigabytes","Terabytes"]
+    };
+
+    // Conversion factors to base unit per category:
+    // base: meters, grams, meters/sec, liters, seconds, bytes
+    const factors = {
+      length: {
+        Millimeters: 0.001, Centimeters: 0.01, Meters: 1, Kilometers: 1000,
+        Feet: 0.3048, Yards: 0.9144, Miles: 1609.34
+      },
+      weight: {
+        Milligrams: 0.001, Grams: 1, Kilograms: 1000,
+        Ounces: 28.3495, Pounds: 453.592
+      },
+      temperature: null, // handled specially
+      speed: {
+        "Meters/Second": 1, "Kilometers/Hour": 3.6, "Miles/Hour": 2.23694
+      },
+      liquid: {
+        Milliliters: 0.001, Liters: 1, Cups: 0.24, Gallons: 3.78541
+      },
+      time: {
+        Seconds:1, Minutes:60, Hours:3600, Days:86400,
+        Weeks:604800, Months:2629800, Years:31557600
+      },
+      storage: {
+        Bits: 0.125, // 1 bit = 0.125 bytes
+        Bytes: 1,
+        Kilobytes: 1024,
+        Megabytes: 1024 ** 2,
+        Gigabytes: 1024 ** 3,
+        Terabytes: 1024 ** 4
+      }
+    };
+
+    // Elements
+    const elements = {
+      category: document.getElementById('category'),
+      fromValue: document.getElementById('fromValue'),
+      historySelect: document.getElementById('historySelect'),
+      historyList: document.getElementById('historyList'),
+      fromUnit: document.getElementById('fromUnit'),
+      toUnit: document.getElementById('toUnit'),
+      convertBtn: document.getElementById('convertBtn'),
+      swapBtn: document.getElementById('swapBtn'),
+      result: document.getElementById('result'),
+      errorText: document.getElementById('errorText'),
+      clearHistoryBtn: document.getElementById('clearHistoryBtn')
+    };
+
+    // History stored as objects: { label, value, from, to, category }
+    let history = JSON.parse(localStorage.getItem('converterHistory')) || [];
+
+    function saveHistoryEntry(entry){
+      // prevent exact duplicates
+      if (!history.some(h => h.label === entry.label)){
+        history.unshift(entry);
+        if (history.length > 10) history.pop();
+        localStorage.setItem('converterHistory', JSON.stringify(history));
+        populateHistoryList();
+      }
+    }
+
+    function populateHistoryList(){
+      elements.historyList.innerHTML = '';
+      history.forEach(h => {
+        const opt = document.createElement('option');
+        opt.value = h.label;
+        elements.historyList.appendChild(opt);
+      });
+    }
+
+    function populateUnits(){
+      const cat = elements.category.value;
+      const list = unitLists[cat] || [];
+      elements.fromUnit.innerHTML = '';
+      elements.toUnit.innerHTML = '';
+      list.forEach((u, idx) => {
+        const o1 = new Option(u, u);
+        const o2 = new Option(u, u);
+        elements.fromUnit.add(o1);
+        elements.toUnit.add(o2);
+      });
+      if (list.length > 1) elements.toUnit.selectedIndex = 1;
+    }
+
+    function showError(msg){
+      elements.errorText.textContent = msg;
+      elements.errorText.style.display = 'block';
+    }
+    function hideError(){
+      elements.errorText.style.display = 'none';
+    }
+
+    function formatNumber(n){
+      // trim excessive decimals but keep up to 6
+      if (!isFinite(n)) return String(n);
+      if (Math.abs(n) >= 1e6 || Math.abs(n) <= 1e-4 && n !== 0) return n.toExponential(6);
+      return (+n.toFixed(6)).toString();
+    }
+
+    function convertOnce(){
+      hideError();
+      const cat = elements.category.value;
+      const raw = elements.fromValue.value;
+      const from = elements.fromUnit.value;
+      const to = elements.toUnit.value;
+
+      const value = Number(raw);
+      if (!isFinite(value) || raw === '') {
+        showError('Please enter a valid number.');
+        elements.result.innerHTML = '<p>Invalid input.</p>';
+        return;
+      }
+
+      // disallow negative for non-temperature categories
+      if (cat !== 'temperature' && value < 0){
+        showError('Negative values are not allowed for this category.');
+        elements.result.innerHTML = '<p>Invalid input (negative).</p>';
+        return;
+      }
+
+      let converted = NaN;
+
+      if (cat === 'temperature'){
+        // Temperature conversions handled explicitly
+        if (from === to) converted = value;
+        else if (from === 'Celsius'){
+          converted = (to === 'Fahrenheit') ? (value * 9/5) + 32 : (to === 'Kelvin') ? value + 273.15 : NaN;
+        } else if (from === 'Fahrenheit'){
+          converted = (to === 'Celsius') ? (value - 32) * 5/9 : (to === 'Kelvin') ? (value - 32) * 5/9 + 273.15 : NaN;
+        } else if (from === 'Kelvin'){
+          converted = (to === 'Celsius') ? value - 273.15 : (to === 'Fahrenheit') ? (value - 273.15) * 9/5 + 32 : NaN;
+        }
+      } else {
+        const f = factors[cat];
+        if (!f) {
+          elements.result.innerHTML = '<p>Unsupported category.</p>';
+          return;
+        }
+        // guard: units exist in factor map
+        if (f[from] === undefined || f[to] === undefined){
+          elements.result.innerHTML = '<p>Unit mismatch.</p>';
+          return;
+        }
+        converted = (value * f[from]) / f[to];
+      }
+
+      if (!isFinite(converted)){
+        elements.result.innerHTML = '<p>Could not convert.</p>';
+        return;
+      }
+
+      elements.result.innerHTML = `<p><strong>${formatNumber(value)}</strong> ${from} = <strong>${formatNumber(converted)}</strong> ${to}</p>`;
+
+      // save history entry
+      const label = `${formatNumber(value)} ${from} → ${to}`;
+      saveHistoryEntry({ label, value, from, to, category: cat });
+    }
+
+    // swap units (keeps current category)
+    function swapUnits(){
+      const a = elements.fromUnit.value;
+      elements.fromUnit.value = elements.toUnit.value;
+      elements.toUnit.value = a;
+    }
+
+    // populate fields from history selection
+    function applyHistorySelection(label){
+      if (!label) return;
+      const obj = history.find(h => h.label === label);
+      if (!obj) return;
+      elements.category.value = obj.category;
+      populateUnits();
+      // small timeout to ensure units populated
+      setTimeout(() => {
+        elements.fromUnit.value = obj.from;
+        elements.toUnit.value = obj.to;
+        elements.fromValue.value = obj.value;
+      }, 0);
+    }
+
+    // clear history
+    function clearHistory(){
+      history = [];
+      localStorage.removeItem('converterHistory');
+      populateHistoryList();
+    }
+
+    // events
+    elements.category.addEventListener('change', () => {
+      populateUnits();
+      hideError();
+      elements.result.innerHTML = '<p>Converted value will appear here.</p>';
+    });
+
+    elements.convertBtn.addEventListener('click', convertOnce);
+    elements.swapBtn.addEventListener('click', swapUnits);
+    elements.clearHistoryBtn.addEventListener('click', () => {
+      clearHistory();
+      showTemporaryMessage('History cleared');
+    });
+
+    elements.historySelect.addEventListener('change', (e) => {
+      applyHistorySelection(e.target.value);
+    });
+
+    elements.fromValue.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') convertOnce();
+    });
+
+    // small temporary message (toast-like)
+    function showTemporaryMessage(msg){
+      const node = document.createElement('div');
+      node.textContent = msg;
+      node.style.position = 'fixed';
+      node.style.left = '50%';
+      node.style.bottom = '26px';
+      node.style.transform = 'translateX(-50%)';
+      node.style.background = 'var(--primary)';
+      node.style.color = '#000';
+      node.style.padding = '8px 12px';
+      node.style.borderRadius = '8px';
+      node.style.fontWeight = '700';
+      node.style.zIndex = 9999;
+      document.body.appendChild(node);
+      setTimeout(()=> node.remove(), 2000);
+    }
+
+    // init
+    (function init(){
+      populateUnits();
+      populateHistoryList();
+      // restore last used converter state (not the history list -- separate)
+      const savedState = JSON.parse(localStorage.getItem('unitConverterState'));
+      if (savedState){
+        elements.category.value = savedState.category || elements.category.value;
+        populateUnits();
+        elements.fromUnit.value = savedState.fromUnit || elements.fromUnit.value;
+        elements.toUnit.value = savedState.toUnit || elements.toUnit.value;
+        elements.fromValue.value = savedState.value || '';
+      }
+      // save simple state on convert (to prefill next time)
+      const originalConvert = convertOnce;
+      window.convert = function(){ // keep global for manual calls if needed
+        originalConvert();
+        // save small state
+        const s = {
+          category: elements.category.value,
+          fromUnit: elements.fromUnit.value,
+          toUnit: elements.toUnit.value,
+          value: elements.fromValue.value
+        };
+        localStorage.setItem('unitConverterState', JSON.stringify(s));
+      };
+
+      // bind convert button to window.convert to ensure state saving
+      elements.convertBtn.removeEventListener('click', convertOnce);
+      elements.convertBtn.addEventListener('click', window.convert);
+    })();
+  </script>
+</body>
+</html>
